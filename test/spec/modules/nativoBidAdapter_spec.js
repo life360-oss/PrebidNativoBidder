@@ -715,24 +715,34 @@ describe('interpretResponse - additional branch coverage', function () {
     expect(result).to.be.an('array').with.lengthOf(0);
   });
 
-  it('infers banner media type when mtype is missing', function () {
-    const result = spec.interpretResponse({ body: makeResponse({ adm: '<creative>' }) }, buildBannerRequest());
-    expect(result).to.be.an('array');
-  });
+  describe('mtype handling', function () {
+    // The Nativo server always sends mtype; the adapter must not guess a media type when it is missing
+    it('drops a bid with no mtype instead of inferring a media type', function () {
+      const bids = spec.interpretResponse({ body: makeResponse({}) }, buildBannerRequest());
+      expect(bids).to.have.lengthOf(0);
+    });
 
-  it('infers native media type from a JSON adm when mtype is missing', function () {
-    const result = spec.interpretResponse({ body: makeResponse({ adm: '{"native":{}}' }) }, buildBannerRequest());
-    expect(result).to.be.an('array');
-  });
+    it('does not infer native from a JSON adm when mtype is missing', function () {
+      const bids = spec.interpretResponse({ body: makeResponse({ adm: '{"native":{}}' }) }, buildBannerRequest());
+      expect(bids).to.have.lengthOf(0);
+    });
 
-  it('infers native media type from bid.mediaTypes.native when mtype is missing', function () {
-    const result = spec.interpretResponse({ body: makeResponse({ mediaTypes: { native: {} } }) }, buildBannerRequest());
-    expect(result).to.be.an('array');
-  });
+    it('does not mutate the response bid to add an mtype', function () {
+      const body = makeResponse({});
+      spec.interpretResponse({ body }, buildBannerRequest());
+      expect(body.seatbid[0].bid[0]).to.not.have.property('mtype');
+    });
 
-  it('infers video media type from bid.mediaTypes.video when mtype is missing', function () {
-    const result = spec.interpretResponse({ body: makeResponse({ mediaTypes: { video: {} } }) }, buildBannerRequest());
-    expect(result).to.be.an('array');
+    it('keeps a bid that carries mtype and maps it to banner', function () {
+      const bids = spec.interpretResponse({ body: makeResponse({ mtype: 1 }) }, buildBannerRequest());
+      expect(bids).to.have.lengthOf(1);
+      expect(bids[0].mediaType).to.equal('banner');
+    });
+
+    it('does not throw when adm is absent and mtype is present', function () {
+      const bids = spec.interpretResponse({ body: makeResponse({ mtype: 1, adm: undefined }) }, buildBannerRequest());
+      expect(bids).to.be.an('array');
+    });
   });
 });
 

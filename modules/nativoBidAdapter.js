@@ -1,4 +1,4 @@
-import { isEmpty, parseUrl, extractDomainFromHost, logWarn, deepAccess } from '../src/utils.js';
+import { isEmpty, parseUrl, extractDomainFromHost, logWarn } from '../src/utils.js';
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { BANNER, VIDEO, NATIVE } from '../src/mediaTypes.js';
 import { getGlobal } from '../src/prebidGlobal.js';
@@ -174,8 +174,6 @@ export const spec = {
       // Store by both bid.id and bid.impid to handle different converter mappings
       body.seatbid?.forEach(seatbid => {
         seatbid.bid?.forEach(bid => {
-          if (!bid.mtype) bid.mtype = inferMediaType(bid);
-
           if (bid.ext) {
             // Store by bid.id (UUID) if present
             if (bid.id) {
@@ -411,21 +409,5 @@ function buildSite(urlParam, existingSite = {}) {
   } catch (err) {
     logWarn('[Nativo] Failed to parse params.url:', urlParam, err);
     return null;
-  }
-}
-
-const ORTB_MEDIA_TYPE = {
-  "Banner": 1,
-  "Video": 2,
-  "Audio": 3,
-  "Native": 4
-};
-function inferMediaType(bid) {
-  if (deepAccess(bid, 'mediaTypes.video')) {
-    return ORTB_MEDIA_TYPE.Video;
-  } else if (deepAccess(bid, 'mediaTypes.native') || bid?.adm.startsWith('{"')) {
-    return ORTB_MEDIA_TYPE.Native;
-  } else {
-    return ORTB_MEDIA_TYPE.Banner;
   }
 }
